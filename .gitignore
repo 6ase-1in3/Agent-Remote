@@ -1,0 +1,4 @@
+telegram_credentials.txt
+__pycache__/
+*.env
+.DS_Store
