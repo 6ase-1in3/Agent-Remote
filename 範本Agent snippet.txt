@@ -496,10 +496,74 @@
       
       // 處理純文字
       if (newMsgs.length > 0 && state.sendBox) {
-         let inputToSimulate = newMsgs[newMsgs.length - 1]; // 只取最新那一筆
-         const remoteWrappedMessage = `請使用 <YOUR_SKILLS_PATH>\\00_remote-mode\\SKILL.md 技能處理以下請求：\n\n${inputToSimulate}`;
-         injectTextAndSend(remoteWrappedMessage, state, true);
-         tgSend("📩 已疊加遠端環境變數並為您發送: " + inputToSimulate);
+         let inputToSimulate = newMsgs[newMsgs.length - 1].trim(); // 只取最新那一筆
+         
+         if (inputToSimulate.toLowerCase() === '/stop' || inputToSimulate === '停止') {
+             const stopBtn = mainDoc.querySelector('div[data-tooltip-id="input-send-button-cancel-tooltip"]');
+             if (stopBtn) {
+                 ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach(evt => {
+                     stopBtn.dispatchEvent(new MouseEvent(evt, { bubbles: true, cancelable: true, buttons: 1 }));
+                 });
+                 tgSend("🛑 已為您在遠端按下「停止產生」按鈕！");
+             } else {
+                 tgSend("⚠️ 找不到停止按鈕，AI 可能已經處於閒置狀態。");
+             }
+         } else if (inputToSimulate.toLowerCase().startsWith('/model')) {
+             const targetArg = inputToSimulate.substring(6).trim().toUpperCase();
+             const MODEL_MAP = {
+                 'GPH': 'Gemini 3.1 Pro (High)',
+                 'GPL': 'Gemini 3.1 Pro (Low)',
+                 'GF':  'Gemini 3 Flash',
+                 'CS':  'Claude Sonnet 4.6 (Thinking)',
+                 'CO':  'Claude Opus 4.6 (Thinking)',
+                 'GPT': 'GPT-OSS 120B (Medium)'
+             };
+             if (targetArg === "") {
+                 let reply = "🤖 **模型快捷碼：**\n\n";
+                 Object.entries(MODEL_MAP).forEach(([code, name]) => {
+                     reply += `/model ${code} → ${name}\n`;
+                 });
+                 tgSend(reply);
+             } else if (MODEL_MAP[targetArg]) {
+                 const fullName = MODEL_MAP[targetArg];
+                 const modelBtn = mainDoc.querySelector('div[role="button"][aria-haspopup="dialog"]');
+                 if (modelBtn) {
+                     modelBtn.click();
+                     setTimeout(() => {
+                         // 排除 modelBtn 自己的子樹，找 dialog 裡面文字匹配的葉節點
+                         const allEls = Array.from(mainBody.querySelectorAll('span, div, p, button, a, label'));
+                         const candidates = allEls.filter(el => {
+                             if (modelBtn.contains(el)) return false; // 跳過按鈕本身
+                             const t = (el.innerText || el.textContent || '').trim();
+                             return t.includes(fullName);
+                         });
+                         // 挑最深的（文字最短的那個 = 最精準）
+                         candidates.sort((a, b) => a.textContent.trim().length - b.textContent.trim().length);
+                         if (candidates.length > 0) {
+                             const hit = candidates[0];
+                             hit.click();
+                             if (hit.parentElement) hit.parentElement.click();
+                             tgSend("✅ 已切換至: " + fullName);
+                         } else {
+                             tgSend("⚠️ 選單已開但找不到「" + fullName + "」，可能名稱有更新。請截圖選單讓我確認。");
+                             mainBody.click();
+                         }
+                     }, 500);
+                 } else {
+                     tgSend("⚠️ 找不到模型選單按鈕。");
+                 }
+             } else {
+                 tgSend("⚠️ 不認識的代碼「" + targetArg + "」。輸入 /model 查看可用代碼。");
+             }
+         } else if (inputToSimulate.startsWith('/ask ') || inputToSimulate.startsWith('!')) {
+             const cleanInput = inputToSimulate.startsWith('/ask ') ? inputToSimulate.substring(5) : inputToSimulate.substring(1);
+             injectTextAndSend(cleanInput, state, true);
+             tgSend("🗣️ 已幫您純粹作為文字輸入送出: " + cleanInput);
+         } else {
+             const remoteWrappedMessage = `請使用 <YOUR_SKILLS_PATH>\\00_remote-mode\\SKILL.md 技能處理以下請求：\n\n${inputToSimulate}`;
+             injectTextAndSend(remoteWrappedMessage, state, true);
+             tgSend("📩 已疊加遠端環境變數並為您發送: " + inputToSimulate);
+         }
          didProcessSomething = true;
       } 
       
@@ -515,6 +579,7 @@
   };
 
   let chatObserver = null;
+  let lastStreamTime = Date.now();
   
   const setupChatObserver = () => {
       if (chatObserver) {
@@ -528,6 +593,14 @@
           const stopBtn = mainDoc.querySelector('div[data-tooltip-id="input-send-button-cancel-tooltip"]');
           if (stopBtn && (stopBtn.querySelector('.bg-red-500') || stopBtn.innerHTML.includes('bg-red-500'))) {
               currentlyThinking = true;
+          }
+          
+          if (currentlyThinking) {
+              const now = Date.now();
+              if (now - lastStreamTime > 15000) {
+                  lastStreamTime = now;
+                  tgSend("✍️ AI 努力編輯中... (正在為您產生內容，請稍候)");
+              }
           }
           
           if (wasBotThinking && !currentlyThinking) {
