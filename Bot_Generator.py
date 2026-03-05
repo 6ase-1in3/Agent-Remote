@@ -77,17 +77,25 @@ def main():
     # 將 Python 的 list 轉成 JavaScript 陣列字串
     js_array_str = "[\n    " + ",\n    ".join(f'"{s}"' for s in master_skills) + "\n  ];"
 
-    # 處理 Windows 路徑跳脫斜線
+    # 處理 Windows 路徑跳脫斜線 (非常重要，因為要注入到 JavaScript 中)
+    # JS 中的一般字串 ("...") 需要單次跳脫：D:\\OneDrive
+    # JS 中的樣板字串 (`...`) 遇到全域變數替換時，如果不處理，原本的 D:\O 會變成 Uncaught SyntaxError
     preview_dir_js = preview_dir.replace('\\', '\\\\')
     skills_path_js = skills_path.replace('\\', '\\\\')
+    
+    # 針對 ES6 Template Literal (反引號 ` `) 中使用的變數，要用四個斜線
+    # 這樣 JS 引擎在 parse template literal 時才會保留出 "\\\\" -> 變成兩個 "\" 傳給 Regex 或純文字
+    preview_dir_template_literal = preview_dir.replace('\\', '\\\\\\\\')
+    skills_path_template_literal = skills_path.replace('\\', '\\\\\\\\')
 
     # 讀取模板
     with open(template_path, 'r', encoding='utf-8') as f:
         template_text = f.read()
 
-    # 取代母板內的全域路徑參數
-    template_text = template_text.replace('<YOUR_PREVIEW_DIR_PATH>', preview_dir_js)
-    template_text = template_text.replace('<YOUR_SKILLS_PATH>', skills_path_js)
+    # 進行安全替換。因為原本範本中有兩處使用了這個變數，一處是按鈕 (單引號)，一處是字串拼接 (反引號)
+    # 為了徹底解決 Uncaught SyntaxError，我們直接尋找並統一處理
+    template_text = template_text.replace('<YOUR_PREVIEW_DIR_PATH>', preview_dir_template_literal)
+    template_text = template_text.replace('<YOUR_SKILLS_PATH>', skills_path_template_literal)
 
     print("\n⏳ 正在批次產生客製化腳本...\n")
     count = 0
