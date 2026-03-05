@@ -281,11 +281,11 @@
      let sendBox = null;
      const checkNode = (root) => {
        if(!root) return;
-       // 🎯 重構精準導航：找 Antigravity 的聊天輸入框
-       // Antigravity (VSCode webview) 可能使用 contenteditable (ProseMirror/Monaco/Lexical) 或特製 textarea
+       // ? ??蝎暹?撠嚗 Antigravity ??憭抵撓?交?
+       // Antigravity (VSCode webview) ?航雿輻 contenteditable (ProseMirror/Monaco/Lexical) ?鋆?textarea
        root.querySelectorAll('textarea, [contenteditable="true"], .ProseMirror, .chat-input, [data-lexical-editor="true"]').forEach(ta => {
            if(ta.offsetParent !== null && !ta.readOnly && !ta.disabled && !ta.classList.contains('xterm-helper-textarea')) {
-               // 排除 terminal 的 textarea class，設定為我們找到的 sendBox
+               // ? terminal ??textarea class嚗身摰??啁? sendBox
                if (!ta.classList.contains('xterm')) {
                    sendBox = ta;
                }
@@ -298,9 +298,9 @@
           const title = (el.getAttribute('title') || '').toLowerCase();
           if(label.includes('stop') && label.includes('generat')) isThinking = true;
           if(title.includes('stop') && title.includes('generat')) isThinking = true;
-          if(t === 'stop' || t === '停止' || t.includes('is typing') || t.includes('正在生成') || label.includes('正在生成') || t.includes('canceling')) isThinking = true;
+          if(t === 'stop' || t === '?迫' || t.includes('is typing') || t.includes('甇???') || label.includes('甇???') || t.includes('canceling')) isThinking = true;
           
-          // Antigravity 專用：當紅色的正方形 Cancel 按鈕出現時，代表 AI 正在思考
+          // Antigravity 撠嚗蝝?迤?孵耦 Cancel ???箇??隞?” AI 甇???
           if(el.getAttribute('data-tooltip-id') === 'input-send-button-cancel-tooltip') {
               if (el.querySelector('.bg-red-500') || el.innerHTML.includes('bg-red-500')) {
                   isThinking = true;
@@ -519,9 +519,9 @@
                  'GPT': 'GPT-OSS 120B (Medium)'
              };
              if (targetArg === "") {
-                 let reply = "🤖 **模型快捷碼：**\n\n";
+                 let reply = "?? **璅∪?敹急蝣潘?**\n\n";
                  Object.entries(MODEL_MAP).forEach(([code, name]) => {
-                     reply += `/model ${code} → ${name}\n`;
+                     reply += `/model ${code} ??${name}\n`;
                  });
                  tgSend(reply);
              } else if (MODEL_MAP[targetArg]) {
@@ -530,22 +530,22 @@
                  if (modelBtn) {
                      modelBtn.click();
                      setTimeout(() => {
-                         // 排除 modelBtn 自己的子樹，找 dialog 裡面文字匹配的葉節點
+                         // ? modelBtn ?芸楛??璅對???dialog 鋆⊿???寥???蝭暺?
                          const allEls = Array.from(mainBody.querySelectorAll('span, div, p, button, a, label'));
                          const candidates = allEls.filter(el => {
-                             if (modelBtn.contains(el)) return false; // 跳過按鈕本身
+                             if (modelBtn.contains(el)) return false; // 頝喲????祈澈
                              const t = (el.innerText || el.textContent || '').trim();
                              return t.includes(fullName);
                          });
-                         // 挑最深的（文字最短的那個 = 最精準）
+                         // ??瘛梁?嚗?摮??剔????= ?蝎暹?嚗?
                          candidates.sort((a, b) => a.textContent.trim().length - b.textContent.trim().length);
                          if (candidates.length > 0) {
                              const hit = candidates[0];
                              hit.click();
                              if (hit.parentElement) hit.parentElement.click();
-                             tgSend("✅ 已切換至: " + fullName);
+                             tgSend("??撌脣??: " + fullName);
                          } else {
-                             tgSend("⚠️ 選單已開但找不到「" + fullName + "」，可能名稱有更新。請截圖選單讓我確認。");
+                             tgSend("?? ?詨撌脤?雿銝?? + fullName + "???航?迂??啜??芸??詨霈?蝣箄???);
                              mainBody.click();
                          }
                      }, 500);

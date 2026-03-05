@@ -24,26 +24,36 @@ C:\Your_Workspace\
  └── Agent_Remote_Project\          <-- 此專案包存放區
       ├── README.md
       ├── Bot_Generator.py          <-- 產生專屬腳本  
-      ├── telegram_credentials.txt  <-- (可選)記錄申請的Token資料
+      ├── telegram_credentials.txt  <-- 記錄要產生的腳本資料
       └── 範本Agent snippet.txt     <-- 產生專屬腳本的母版
 ```
 
-## ⚠️ 首次使用必讀：設定未指定路徑 (Path Configuration)
-本專案為了能夠開源發布，所有腳本內的**絕對路徑**都已替換成未指定的佔位符號。
-在您第一次使用或是執行 `Bot_Generator.py` 之前，請務必開啟以下兩個檔案，將裡面的佔位符替換為您自己電腦上的**絕對路徑**：
+## ⚠️ 首次使用必讀：設定檔 `telegram_credentials.txt`
+本專案為了能夠開源發布，並支援一鍵同步更新。請開啟檔案 `telegram_credentials.txt`，裡面採用標準的 INI 格式，請依照您的本機環境修改：
 
-1. **`範本Agent snippet.txt`** 
-   - 搜尋 `<YOUR_PREVIEW_DIR_PATH>`：替換為您的雲端同步資料夾路徑 (例如 `D:\OneDrive\__Remote_Previews`)。
-   - 搜尋 `<YOUR_SKILLS_PATH>`：替換為您的技能庫資料夾路徑 (例如 `C:\antigravity\agent_global_skills\00_remote-mode\`)。
+```ini
+[GLOBAL]
+# 你的 Telegram User ID (必填)
+CHAT_ID=8377743279
+# 此為截圖上傳的 OneDrive 資料夾 (用雙斜線轉義 \\ 或是單斜線 \ 皆可腳本會自動處理)
+PREVIEW_DIR_PATH=D:\OneDrive\Python_File\插件_Antigravity\__Remote_Previews
+# 此為 Master Skills 腳本資料夾路徑
+SKILLS_PATH=D:\OneDrive\Python_File\.agent_global_skills
+# 此為自定義技能索引的絕對路徑 (用於動態產生腳本內的右下角 UI 選單)
+SKILLS_INDEX_PATH=D:\OneDrive\Python_File\.agent_global_skills\_自定義_Skills_目錄索引.md
 
-2. **`00_remote-mode/SKILL.md`**
-   - 搜尋 `<YOUR_PREVIEW_DIR_PATH>`：替換為與上方相同的雲端預覽資料夾路徑。
-   - 搜尋 `<YOUR_CURRENT_WORKSPACE>`：這裡僅作為範例說明，請不要改死它，讓文件維持原樣即可，AI 會在執行時自動推斷當前工作區。
+[Remote_Bot_1]
+TOKEN=YOUR_BOT_TOKEN_1
+USERNAME=@eason_Remote_1_bot
 
-- **`Bot_Generator.py`** 
-  （🌟推薦一開始先執行這個！）這是一個互動式腳本，用來快速產生針對不同 Telegram 機器人的 Snippet 程式碼。執行後輸入 Bot 名稱與 Token，它就會自動幫你生出對應的腳本。
-  
-  這是提供給 Python 產生器讀取的系統母板，裡頭封裝了所有的前端模擬、按鈕攔截、剪貼簿與 AI 狀態監控等核心底層邏輯。**一般情況下不需要手動修改它**。當您執行 `Bot_Generator.py` 時，系統會自動參照此檔產出可直接使用的專屬腳本（例如 `Remote_Bot_1_Agent_Tools.txt`）並存放到目錄中。
+# 若有更多機器人分身，可以直接往下新增 [Remote_Bot_2] 等等
+```
+
+> **💡 動態技能選單（Dynamic Skills Indexing）**
+> 腳本現在會「**自動去讀取**」您填寫在 `SKILLS_INDEX_PATH` 中的 Markdown 索引檔！也就是說，當您的自定義技能庫新增或減少技能時，您不需要手動去更改程式碼。使用者也可根據自己現有的清單格式（只要包含 `00_xxxxx` 這種命名規則的純文字或 Markdown 皆可），腳本會自動正規化提取出來，並於每次執行產生器時一鍵刷新所有 UI 選單！
+
+- **📍 `Bot_Generator.py` (批次產生器)** 
+  （🌟強烈推薦一鍵更新神器！）這支腳本是全自動的。只要您設定好 `telegram_credentials.txt`，直接雙擊執行它。它就會瞬間產出 **所有分身機器人的獨立腳本**（例如 `Remote_Bot_1_Agent_Tools.txt`）。如果您未來搬移了資料夾、修改了路徑、或是技能清單有更新，只要改完設定檔，再執行一次這個 Python 檔案，就可以直接「**一鍵覆蓋/熱更新**」所有的輸出腳本！
 
 
 ---
