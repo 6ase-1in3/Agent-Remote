@@ -29,7 +29,9 @@ C:\Your_Workspace\
 ```
 
 ## ⚠️ 首次使用必讀：設定檔 `telegram_credentials.txt`
-本專案為了能夠開源發布，並支援一鍵同步更新。請開啟檔案 `telegram_credentials.txt`，裡面採用標準的 INI 格式，請依照您的本機環境修改：
+本專案為了能夠開源發布，並支援一鍵同步更新。請先將 `telegram_credentials_example.txt` 重新命名為 `telegram_credentials.txt` (此檔已被 gitignore 忽略以保護隱私)。
+
+接著開啟 `telegram_credentials.txt`，裡面採用標準的 INI 格式，請依照您的本機環境修改：
 
 ```ini
 [GLOBAL]
