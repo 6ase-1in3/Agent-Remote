@@ -624,11 +624,11 @@
           }
           
           let retryBtn = null;
-          let updateBtn = null;
+          let upgradeBtn = null;
           mainDoc.querySelectorAll('button, [role="button"], a').forEach(el => {
               const bText = (el.innerText || el.textContent || '').trim().toLowerCase();
               if (bText === 'retry' || bText === '重試') retryBtn = el;
-              if (bText === 'update' || bText === '更新模型' || bText === 'update extension') updateBtn = el;
+              if (bText === 'upgrade' || bText === '更新模型' || bText === 'upgrade extension') upgradeBtn = el;
           });
           
           if (retryBtn && !currentlyThinking && !tgIsPolling) {
@@ -646,11 +646,11 @@
               }
           }
           
-          if (updateBtn && !currentlyThinking) {
+          if (upgradeBtn && !currentlyThinking) {
               const now = Date.now();
-              if (!window.top.__hasNotifiedUpdate || (now - window.top.__hasNotifiedUpdate > 60000)) {
-                  window.top.__hasNotifiedUpdate = now;
-                  tgSend("⚠️ 系統跳出 Update / 更新模型 提示。請輸入 `/model` 來切換模型或手動處理。");
+              if (!window.top.__hasNotifiedUpgrade || (now - window.top.__hasNotifiedUpgrade > 60000)) {
+                  window.top.__hasNotifiedUpgrade = now;
+                  tgSend("⚠️ 系統跳出 Upgrade / 更新模型 提示。請輸入 `/model` 來切換模型或手動處理。");
               }
           }
           
