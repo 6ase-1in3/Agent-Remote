@@ -608,10 +608,19 @@
           
           if (currentlyThinking) {
               const now = Date.now();
-              if (now - lastStreamTime > 15000) {
-                  lastStreamTime = now;
-                  tgSend("✍️ AI 努力編輯中... (正在為您產生內容，請稍候)");
+              if (!window.top.__thinkingStartTime) {
+                  window.top.__thinkingStartTime = now;
               }
+              if (now - lastStreamTime > 180000) {
+                  lastStreamTime = now;
+                  const elapsedMs = now - window.top.__thinkingStartTime;
+                  const elapsedMins = Math.floor(elapsedMs / 60000);
+                  const elapsedSecs = Math.floor((elapsedMs % 60000) / 1000);
+                  const timeStr = elapsedMins > 0 ? `${elapsedMins} 分 ${elapsedSecs} 秒` : `${elapsedSecs} 秒`;
+                  tgSend(`✍️ AI 努力編輯中... (正在為您產生內容，請稍候。目前任務已執行：${timeStr})`);
+              }
+          } else {
+             window.top.__thinkingStartTime = null;
           }
           
           let retryBtn = null;
