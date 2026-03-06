@@ -112,21 +112,27 @@
     
     // 💡【核心修復】不再誤殺！如果是原生的 button 或者是 role="button"，就算它裡面包了圖片或文字 span，也都可以被檢查並點擊
     const isClickableTag = el.tagName === 'BUTTON' || el.tagName === 'A' || el.getAttribute('role') === 'button';
-    if (!isClickableTag && el.childElementCount > 0) return false; 
     
     const label = (el.getAttribute('aria-label') || '').toLowerCase();
     // 將所有連續空白替換為單一空白，避免判斷失敗
-    const text = (el.textContent || '').replace(/\\s+/g, ' ').trim().toLowerCase();
-    const parentText = el.parentElement ? (el.parentElement.textContent || '').replace(/\\s+/g, ' ').trim().toLowerCase() : '';
+    const text = (el.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const parentText = el.parentElement ? (el.parentElement.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase() : '';
     
-    if (text.length > 100) return false; 
+    if (!isClickableTag && el.childElementCount > 0) {
+        // 例外放行：如果這個非按鈕的容器，它的文字或父元素文字明確包含以下關鍵字，則允許往下檢查
+        if (!text.includes('requires input') && !parentText.includes('requires input') && !text.includes('always run')) {
+            return false; 
+        }
+    }
+    
+    if (text.length > 150) return false; 
     
     const isExpandState = text.includes('expand') || text.includes('展開') || label.includes('expand');
     const hasStepOrRequire = text.includes('step') || text.includes('步驟') || parentText.includes('step') || 
                              text.includes('require') || parentText.includes('require');
                              
     const isSafeToExpand = isExpandState && hasStepOrRequire;
-    const isAlwaysRun = text.includes('always run');
+    const isAlwaysRun = text.includes('always run') || text.includes('requires input');
 
     return (
       label.includes('confirm') || label.includes('allow') || label.includes('accept') || label.includes('continue') ||
@@ -144,8 +150,9 @@
     root.querySelectorAll('button, [role="button"], a, span, div').forEach(el => {
       if (shouldClick(el)) {
         el.click();
-        el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-        el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+        ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach(evt => {
+            el.dispatchEvent(new MouseEvent(evt, { bubbles: true, cancelable: true, buttons: 1 }));
+        });
         clicked.add(el);
       }
     });
