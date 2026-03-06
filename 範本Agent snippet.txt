@@ -519,9 +519,9 @@
                  'GPT': 'GPT-OSS 120B (Medium)'
              };
              if (targetArg === "") {
-                 let reply = "?? **璅∪?敹急蝣潘?**\n\n";
+                 let reply = "🤖 **模型切換選單：**\n\n";
                  Object.entries(MODEL_MAP).forEach(([code, name]) => {
-                     reply += `/model ${code} ??${name}\n`;
+                     reply += `/model ${code} 👉 ${name}\n`;
                  });
                  tgSend(reply);
              } else if (MODEL_MAP[targetArg]) {
@@ -530,22 +530,22 @@
                  if (modelBtn) {
                      modelBtn.click();
                      setTimeout(() => {
-                         // ? modelBtn ?芸楛??璅對???dialog 鋆⊿???寥???蝭暺?
+                         // 排除 modelBtn 本身的文字，找 dialog 內的選項
                          const allEls = Array.from(mainBody.querySelectorAll('span, div, p, button, a, label'));
                          const candidates = allEls.filter(el => {
-                             if (modelBtn.contains(el)) return false; // 頝喲????祈澈
+                             if (modelBtn.contains(el)) return false; // 排除按鈕本身
                              const t = (el.innerText || el.textContent || '').trim();
                              return t.includes(fullName);
                          });
-                         // ??瘛梁?嚗?摮??剔????= ?蝎暹?嚗?
+                         // 找字數最少的最可能是目標選項
                          candidates.sort((a, b) => a.textContent.trim().length - b.textContent.trim().length);
                          if (candidates.length > 0) {
                              const hit = candidates[0];
                              hit.click();
                              if (hit.parentElement) hit.parentElement.click();
-                             tgSend("??撌脣??: " + fullName);
+                             tgSend("✅ 模型已切換至: " + fullName);
                          } else {
-                             tgSend("?? ?詨撌脤?雿銝?? + fullName + "???航?迂??啜??芸??詨霈?蝣箄???);
+                             tgSend(`⚠️ 畫面上找不到名為 ${fullName} 的模型選項，可能被折疊或沒有權限，請手動確認。`);
                              mainBody.click();
                          }
                      }, 500);
@@ -554,6 +554,17 @@
                  }
              } else {
                  tgSend("⚠️ 不認識的代碼「" + targetArg + "」。輸入 /model 查看可用代碼。");
+             } } else if (inputToSimulate.toLowerCase() === '/retry' || inputToSimulate === '重試') {
+             let retryBtn = null;
+             mainDoc.querySelectorAll('button, [role="button"], a').forEach(el => {
+                 const text = (el.innerText || el.textContent || '').trim();
+                 if (text === 'Retry' || text === '重試') retryBtn = el;
+             });
+             if (retryBtn) {
+                 tgSend("🔄 收到了指令，已為您強行點擊 Retry 重試任務！");
+                 retryBtn.click();
+             } else {
+                 tgSend("⚠️ 目前畫面上沒有看到可以 Retry 的按鈕喔。");
              }
          } else if (inputToSimulate.startsWith('/ask ') || inputToSimulate.startsWith('!')) {
              const cleanInput = inputToSimulate.startsWith('/ask ') ? inputToSimulate.substring(5) : inputToSimulate.substring(1);
@@ -600,6 +611,37 @@
               if (now - lastStreamTime > 15000) {
                   lastStreamTime = now;
                   tgSend("✍️ AI 努力編輯中... (正在為您產生內容，請稍候)");
+              }
+          }
+          
+          let retryBtn = null;
+          let updateBtn = null;
+          mainDoc.querySelectorAll('button, [role="button"], a').forEach(el => {
+              const bText = (el.innerText || el.textContent || '').trim().toLowerCase();
+              if (bText === 'retry' || bText === '重試') retryBtn = el;
+              if (bText === 'update' || bText === '更新模型' || bText === 'update extension') updateBtn = el;
+          });
+          
+          if (retryBtn && !currentlyThinking && !tgIsPolling) {
+              const now = Date.now();
+              if (!window.top.__lastRetryTime) window.top.__lastRetryTime = 0;
+              if (now - window.top.__lastRetryTime > 60000) {
+                  window.top.__lastRetryTime = now;
+                  tgSend("🔄 偵測到 Retry 按鈕！已為您自動點擊重試。");
+                  retryBtn.click();
+              } else {
+                  if (!window.top.__hasNotifiedRetrySpan || (now - window.top.__hasNotifiedRetrySpan > 15000)) {
+                      window.top.__hasNotifiedRetrySpan = now;
+                      tgSend("⚠️ 一分鐘內頻繁出現 Retry 錯誤，請確認狀況。若要強行重試請輸入 `/retry`");
+                  }
+              }
+          }
+          
+          if (updateBtn && !currentlyThinking) {
+              const now = Date.now();
+              if (!window.top.__hasNotifiedUpdate || (now - window.top.__hasNotifiedUpdate > 60000)) {
+                  window.top.__hasNotifiedUpdate = now;
+                  tgSend("⚠️ 系統跳出 Update / 更新模型 提示。請輸入 `/model` 來切換模型或手動處理。");
               }
           }
           
@@ -653,6 +695,22 @@
       });
   };
 
+  const getWorkspaceName = () => {
+    try {
+      const explorerHeader = mainDoc.querySelector('h3.title[aria-label^="Explorer Section:"]');
+      if (explorerHeader) {
+        return explorerHeader.textContent.trim();
+      }
+      
+      const titleEl = mainDoc.querySelector('title');
+      if (titleEl) {
+        const parts = titleEl.textContent.split(' - ');
+        if (parts.length >= 2) return parts[parts.length - 2].trim();
+      }
+    } catch(e) {}
+    return "未知工作區";
+  };
+
   tgBtn.onclick = (e) => {
     e.stopPropagation();
     if (!tgRunning) {
@@ -665,7 +723,9 @@
       tgText.textContent = '⏸ 暫停 TG 遙控';
       tgBtn.style.background = greenGradient;
       tgRunning = true;
-      tgSend("🚀 Antigravity 遠端遙控已連線... 隨時可以對我下達指令！");
+      
+      const wsName = getWorkspaceName();
+      tgSend(`🚀 Antigravity 遠端遙控已連線... 目前工作空間為：[ ${wsName} ] 隨時可以對我下達指令！`);
     } else {
       clearInterval(window.top.__tgInterval);
       if (chatObserver) chatObserver.disconnect();
