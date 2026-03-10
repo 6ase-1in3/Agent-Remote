@@ -1,851 +1,1705 @@
-// Agent Tools Unified 終極安全版
+﻿// Agent Tools Unified 蝯扔摰分
+
 (() => {
-  console.log("1. 腳本開始執行...");
+
+  console.log("1. ?單?分瑁?...");
+
   const mainDoc = window.top.document;
+
   const mainBody = mainDoc.body;
+
   if (!mainBody) return;
+
   
+
   const removeElements = ['__agent_tools_launcher', '__agent_tools_menu', '__ac_launcher', '__skills_launcher', '__skills_menu'];
+
   removeElements.forEach(id => {
+
     const el = mainDoc.getElementById(id);
+
     if (el) el.remove();
+
   });
+
   if (window.top.__acInterval) clearInterval(window.top.__acInterval);
+
   if (window.top.__tgInterval) clearInterval(window.top.__tgInterval);
+
   if (window.top.__tgObserver) window.top.__tgObserver.disconnect();
+
   
+
   const copyToClipboard = (text) => {
+
     const textArea = mainDoc.createElement("textarea");
+
     textArea.value = text;
+
     textArea.style.cssText = "position: fixed; opacity: 0; left: -9999px;";
+
     mainBody.appendChild(textArea);
+
     textArea.focus();
+
     textArea.select();
+
     try {
+
       mainDoc.execCommand('copy');
+
     } catch (err) {}
+
     mainBody.removeChild(textArea);
+
   };
+
+
 
   const svgNS = "http://www.w3.org/2000/svg";
+
   const iconSvg = mainDoc.createElementNS(svgNS, "svg");
+
   iconSvg.setAttribute("viewBox", "0 0 24 24");
+
   iconSvg.setAttribute("width", "24");
+
   iconSvg.setAttribute("height", "24");
+
   iconSvg.setAttribute("fill", "currentColor");
+
   const iconPath = mainDoc.createElementNS(svgNS, "path");
+
   iconPath.setAttribute("d", "M13 2.05v7.95h5l-9 12v-7.95H4l9-12z"); 
+
   iconSvg.appendChild(iconPath);
 
+
+
   const btn = mainDoc.createElement('button');
+
   btn.id = '__agent_tools_launcher';
+
   btn.appendChild(iconSvg);
+
   
+
   const purpleGradient = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+
   const greenGradient = '#10b981'; 
+
   
+
   btn.style.cssText = `
+
     position: fixed;
+
     bottom: 120px; 
+
     left: 5.5px;
+
     z-index: 2147483647;
+
     width: 50px;
+
     height: 50px;
+
     padding: 0;
+
     display: flex;
+
     justify-content: center;
+
     align-items: center;
+
     background: ${purpleGradient}; 
+
     color: white;
+
     border: none;
+
     border-radius: 50%;
+
     cursor: pointer;
+
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+
     transform: scale(0.6);
+
     transform-origin: bottom left;
+
     transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
   `;
+
   btn.onmouseover = () => btn.style.transform = "scale(0.65)";
+
   btn.onmouseout = () => btn.style.transform = "scale(0.6)";
 
-  const masterSkills = [
-    "00_autonomous-dev", "00_chrome-extension-v3", "00_color-skills",
+
+
+  const masterSkills = <MASTER_SKILLS_LIST>; // [
+
+    "00_autonomous-dev", "00_chrome-extension-v3", "00_web-ui-design",
+
     "00_desktop-ui-ux", "00_evolution-writer", "00_gemini-web-creator",
+
     "00_image-design-director", "00_json-prompting", "00_master-filter-system",
+
     "00_model-evolution-writer", "00_modern-android-dev", "00_modern-python-gui",
+
     "00_notebooklm", "00_notebooklm-feeder", "00_ppt-generator",
+
     "00_presentation-designer", "00_project-manager", "00_remote-mode", "00_research-investigator",
+
     "00_safety-investigator", "00_skill-creator", "00_source-verifier",
+
     "00_spec-writer", "00_sql", "00_time-travel-researcher",
-    "00_ux-design-systems", "00_video-highlights-creator", "00_visual-director"
+
+    "00_web-ui-design", "00_video-highlights-creator", "00_visual-director"
+
   ];
 
+
+
   const menu = mainDoc.createElement('div');
+
   menu.id = '__agent_tools_menu';
+
   menu.style.cssText = `
+
     display: none;
+
     position: fixed;
+
     bottom: 120px;
+
     left: 45px;
+
     width: 250px;
+
     max-height: 500px;
+
     background: rgba(25, 25, 25, 0.95);
+
     backdrop-filter: blur(10px);
+
     border: 1px solid #444;
+
     border-radius: 8px;
+
     box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+
     z-index: 2147483648;
+
     overflow-y: auto;
+
     overflow-x: hidden;
+
     padding: 8px;
+
     scrollbar-width: thin;
+
     scrollbar-color: #555 transparent;
+
   `;
+
+
 
   let menuOpen = false;
+
   let acRunning = false;
+
   const clicked = new WeakSet();
+
   
+
+  // 這裡會由 Python 腳本動態替換
+
+  const clickKeywords = <CLICK_KEYWORDS_LIST>; // []; 
+
+
+
   const shouldClick = (el) => {
+
     if (!el || clicked.has(el) || el.id === '__agent_tools_launcher') return false;
+
     if (el.offsetWidth === 0 || el.offsetHeight === 0) return false;
+
     
+
     // 💡【核心修復】不再誤殺！如果是原生的 button 或者是 role="button"，就算它裡面包了圖片或文字 span，也都可以被檢查並點擊
+
     const isClickableTag = el.tagName === 'BUTTON' || el.tagName === 'A' || el.getAttribute('role') === 'button';
+
     
+
     const label = (el.getAttribute('aria-label') || '').toLowerCase();
+
     // 將所有連續空白替換為單一空白，避免判斷失敗
+
     const text = (el.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+
     const parentText = el.parentElement ? (el.parentElement.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase() : '';
+
     
+
     if (!isClickableTag && el.childElementCount > 0) {
+
         // 例外放行：如果這個非按鈕的容器，它的文字或父元素文字明確包含以下關鍵字，則允許往下檢查
+
         if (!text.includes('requires input') && !parentText.includes('requires input') && !text.includes('always run')) {
+
             return false; 
+
         }
+
     }
+
     
+
     if (text.length > 150) return false; 
+
     
+
     const isExpandState = text.includes('expand') || text.includes('展開') || label.includes('expand');
+
     const hasStepOrRequire = text.includes('step') || text.includes('步驟') || parentText.includes('step') || 
+
                              text.includes('require') || parentText.includes('require');
+
                              
+
     const isSafeToExpand = isExpandState && hasStepOrRequire;
+
     const isAlwaysRun = text.includes('always run') || text.includes('requires input');
 
-    return (
-      label.includes('confirm') || label.includes('allow') || label.includes('accept') || label.includes('continue') ||
-      text.includes('accept') || text.includes('confirm') || text.includes('allow') || text.includes('continue') ||
-      text === 'run' || text === 'execute' || text === 'yes' || text === 'ok' ||
-      text === '確定' || text === '確認' || text === '同意' || text === '允許' ||
-      text === '許可' || text === '執行' || text === '繼續' || 
-      isSafeToExpand || isAlwaysRun || text.includes('expand all')
-    );
+
+
+    // 使用動態注入的關鍵字清單進行標籤或內容比對
+
+    const matchesKeyword = clickKeywords.some(kw => {
+
+        const lowKw = kw.toLowerCase();
+
+        return label.includes(lowKw) || text.includes(lowKw);
+
+    });
+
+
+
+    return matchesKeyword || isSafeToExpand || isAlwaysRun;
+
   };
+
+
 
   const scanRoot = (root) => {
+
     if (!root) return;
+
     // 原本過濾會把部分元素漏掉，現在我們全掃，把它交給更聰明的 shouldClick 判斷
+
     root.querySelectorAll('button, [role="button"], a, span, div').forEach(el => {
+
       if (shouldClick(el)) {
+
         el.click();
+
         ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach(evt => {
+
             el.dispatchEvent(new MouseEvent(evt, { bubbles: true, cancelable: true, buttons: 1 }));
+
         });
+
         clicked.add(el);
+
       }
+
     });
+
     root.querySelectorAll('*').forEach(el => {
+
       if (el.shadowRoot) scanRoot(el.shadowRoot);
+
     });
+
   };
+
+
 
   const autoClick = () => {
+
     scanRoot(mainBody);
+
     mainDoc.querySelectorAll('iframe').forEach(iframe => {
+
       try { if (iframe.contentDocument) scanRoot(iframe.contentDocument.body); } catch (e) {}
+
     });
+
   };
+
+
 
   const acSection = mainDoc.createElement('div');
+
   acSection.style.cssText = 'padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);';
+
   
+
   const acBtn = mainDoc.createElement('button');
+
   const acText = mainDoc.createElement('span');
+
   acText.textContent = '▶ 開始 Auto Click';
+
   acBtn.appendChild(acText);
 
+
+
   acBtn.style.cssText = `
+
     display: block;
+
     width: 100%;
+
     min-height: 36px;
+
     padding: 8px 12px;
+
     color: white;
+
     background: #667eea;
+
     border: none;
+
     font-family: system-ui, -apple-system, sans-serif;
+
     font-size: 13px;
+
     font-weight: bold;
+
     cursor: pointer;
+
     border-radius: 6px;
+
     transition: background 0.2s;
+
   `;
+
   acBtn.onclick = (e) => {
+
     e.stopPropagation();
+
     if (!acRunning) {
+
       if (window.top.__acInterval) clearInterval(window.top.__acInterval);
+
       window.top.__acInterval = setInterval(autoClick, 300);
-      acText.textContent = '⏸ 暫停 Auto Click';
+
+      acText.textContent = '⏸ 停止 Auto Click';
+
       acBtn.style.background = greenGradient;
+
       btn.style.background = greenGradient; 
+
       acRunning = true;
+
     } else {
+
       clearInterval(window.top.__acInterval);
+
       acText.textContent = '▶ 開始 Auto Click';
+
       acBtn.style.background = '#667eea';
+
       btn.style.background = purpleGradient;
+
       acRunning = false;
+
     }
+
   };
+
   acSection.appendChild(acBtn);
+
   menu.appendChild(acSection);
 
-  // --- UI 組件：Telegram 遙控區塊 ---
-  const BOT_NAME = "YOUR_BOT_NAME_HERE"; // 若同時開多個視窗，請為這個視窗設定專屬名稱 (例如 Bot1, Bot2)
-  const TG_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN_HERE"; // 請替換成你的 Telegram Bot Token
-  const TG_CHAT_ID = "YOUR_TELEGRAM_CHAT_ID_HERE"; // 請替換成你的 Telegram Chat ID
+
+
+  // --- UI 介面：Telegram 訊息接收 ---
+
+  const BOT_NAME = "Remote_Bot_3"; // 請替換成你的機器人名稱 (例如 Bot1, Bot2)
+
+  const TG_TOKEN = "8075904518:AAF0Nlf4fKiQ6TCFPVM-jxMPW2NZf3U0d7g"; // 請替換成你的 Telegram Bot Token
+
+  const TG_CHAT_ID = "8377743279"; // 請替換成你的 Telegram Chat ID
+
   let tgRunning = false;
+
   let tgPollingInterval = null;
+
   let lastTgUpdateId = 0;
+
   let wasBotThinking = false;
+
   
+
   if (window.top.__tgInterval) clearInterval(window.top.__tgInterval);
 
+
+
   const tgSection = mainDoc.createElement('div');
+
   tgSection.style.cssText = 'padding-bottom: 8px; margin-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);';
+
   
+
   const tgBtn = mainDoc.createElement('button');
+
   const tgText = mainDoc.createElement('span');
-  tgText.textContent = '📱 開啟 TG 遙控';
+
+  tgText.textContent = '💬 開始 TG 接收';
+
   tgBtn.appendChild(tgText);
 
+
+
   tgBtn.style.cssText = `
+
     display: block;
+
     width: 100%;
+
     min-height: 36px;
+
     padding: 8px 12px;
+
     color: white;
+
     background: #0088cc;
+
     border: none;
+
     font-family: system-ui, -apple-system, sans-serif;
+
     font-size: 13px;
+
     font-weight: bold;
+
     cursor: pointer;
+
     border-radius: 6px;
+
     transition: background 0.2s;
+
   `;
+
   
+
   const tgSend = async (msg) => {
+
     try {
+
       await fetch('https://api.telegram.org/bot' + TG_TOKEN + '/sendMessage', {
+
         method: 'POST',
+
         headers: {'Content-Type': 'application/json'},
+
         body: JSON.stringify({chat_id: TG_CHAT_ID, text: msg})
+
       });
+
     } catch(e){}
+
   };
+
+
 
   const tgSendPhoto = async (base64Str, caption) => {
+
     try {
+
       // 1. Convert base64 to Blob
+
       const byteCharacters = atob(base64Str.replace(/\s/g, ''));
+
       const byteNumbers = new Array(byteCharacters.length);
+
       for (let i = 0; i < byteCharacters.length; i++) {
+
           byteNumbers[i] = byteCharacters.charCodeAt(i);
+
       }
+
       const byteArray = new Uint8Array(byteNumbers);
+
       const blob = new Blob([byteArray], {type: 'image/png'});
 
+
+
       // 2. Create FormData
+
       const formData = new FormData();
+
       formData.append('chat_id', TG_CHAT_ID);
+
       formData.append('photo', blob, 'screenshot.png');
+
       formData.append('caption', caption);
 
+
+
       // 3. Send
+
       await fetch('https://api.telegram.org/bot' + TG_TOKEN + '/sendPhoto', {
+
         method: 'POST',
+
         body: formData
+
       });
+
     } catch(e){
+
        console.log("TG Photo Send Error:", e);
+
     }
+
   };
+
+
 
   const getChatState = () => {
+
      let isThinking = false;
+
      let sendBox = null;
+
      const checkNode = (root) => {
+
        if(!root) return;
-       // ? ??蝎暹?撠嚗 Antigravity ??憭抵撓?交?
-       // Antigravity (VSCode webview) ?航雿輻 contenteditable (ProseMirror/Monaco/Lexical) ?鋆?textarea
+
+       // 檢查所有可能的輸入框，包括 Antigravity 專用的輸入框
+
+       // Antigravity (VSCode webview) 會使用 contenteditable (ProseMirror/Monaco/Lexical) 而不是 textarea
+
        root.querySelectorAll('textarea, [contenteditable="true"], .ProseMirror, .chat-input, [data-lexical-editor="true"]').forEach(ta => {
+
            if(ta.offsetParent !== null && !ta.readOnly && !ta.disabled && !ta.classList.contains('xterm-helper-textarea')) {
-               // ? terminal ??textarea class嚗身摰??啁? sendBox
+
+               // 排除 terminal 的 textarea class，避免誤判為 sendBox
+
                if (!ta.classList.contains('xterm')) {
+
                    sendBox = ta;
+
                }
+
            }
+
        });
+
        
+
        root.querySelectorAll('button, a, div, span, label').forEach(el => {
+
           const t = (el.textContent || '').trim().toLowerCase();
+
           const label = (el.getAttribute('aria-label') || '').toLowerCase();
+
           const title = (el.getAttribute('title') || '').toLowerCase();
+
           if(label.includes('stop') && label.includes('generat')) isThinking = true;
+
           if(title.includes('stop') && title.includes('generat')) isThinking = true;
-          if(t === 'stop' || t === '?迫' || t.includes('is typing') || t.includes('甇???') || label.includes('甇???') || t.includes('canceling')) isThinking = true;
+
+          if(t === 'stop' || t === '停止生成' || t.includes('is typing') || t.includes('正在思考') || label.includes('正在思考') || t.includes('canceling')) isThinking = true;
+
           
-          // Antigravity 撠嚗蝝?迤?孵耦 Cancel ???箇??隞?” AI 甇???
+
+          // Antigravity 專用的取消按鈕，如果它有紅色背景，表示 AI 正在思考
+
           if(el.getAttribute('data-tooltip-id') === 'input-send-button-cancel-tooltip') {
+
               if (el.querySelector('.bg-red-500') || el.innerHTML.includes('bg-red-500')) {
+
                   isThinking = true;
+
               }
+
           }
+
        });
+
        if(root.querySelectorAll) {
+
          root.querySelectorAll('*').forEach(el => {
+
             if (el.shadowRoot) checkNode(el.shadowRoot);
+
          });
+
        }
+
      };
+
      checkNode(mainBody);
+
      mainDoc.querySelectorAll('iframe').forEach(iframe => {
+
        try { if (iframe.contentDocument) checkNode(iframe.contentDocument.body); } catch (e) {}
+
      });
+
      return { isThinking, sendBox };
+
   };
+
+
 
   const injectTextAndSend = (textToSimulate, state, autoSend = true) => {
+
       if (!state.sendBox) return false;
+
       
+
       state.sendBox.focus();
+
       if (state.sendBox.tagName === 'TEXTAREA' || state.sendBox.tagName === 'INPUT') {
+
           const valueSetter = Object.getOwnPropertyDescriptor(state.sendBox, 'value')?.set;
+
           const prototype = Object.getPrototypeOf(state.sendBox);
+
           const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+
           
+
           if (valueSetter && valueSetter !== prototypeValueSetter && prototypeValueSetter) {
+
              prototypeValueSetter.call(state.sendBox, textToSimulate);
+
           } else if (valueSetter) {
+
              valueSetter.call(state.sendBox, textToSimulate);
+
           } else {
+
              state.sendBox.value = textToSimulate;
+
           }
+
           state.sendBox.dispatchEvent(new Event('input', { bubbles: true }));
+
       } else {
+
           state.sendBox.focus();
+
           
-          // 先全選並刪除，確保不會殘留或重複附加
+
+          // 嘗試清空現有內容，以防萬一
+
           try { 
+
               mainDoc.execCommand('selectAll', false, null);
+
               mainDoc.execCommand('delete', false, null);
+
           } catch(e) {}
+
           
-          // Lexical 的絕對剋星：剪貼簿 Paste 事件
+
+          // Lexical 等富文本編輯器可能需要 Paste 方式
+
           const dataTransfer = new DataTransfer();
+
           dataTransfer.setData('text/plain', textToSimulate);
+
           const pasteEvent = new ClipboardEvent('paste', {
+
               bubbles: true,
+
               cancelable: true,
+
               clipboardData: dataTransfer
+
           });
+
           state.sendBox.dispatchEvent(pasteEvent);
+
           
-          // 如果沒有 Paste 成功，作為備用手段
+
+          // 確保 Paste 失敗時，仍能插入文字
+
           setTimeout(() => {
+
               if (state.sendBox.textContent.trim() === "") {
+
                   try { mainDoc.execCommand('insertText', false, textToSimulate); } catch(e) {}
+
               }
+
           }, 50);
+
       }
+
       
+
       if (autoSend) {
-          // 送出魔法 1：模擬完美的 Enter 鍵擊
+
+          // 模擬方式 1：嘗試發送 Enter 按鍵
+
           setTimeout(() => {
+
               state.sendBox.focus();
+
               const enterOpts = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, charCode: 13, bubbles: true, cancelable: true, composed: true };
+
               state.sendBox.dispatchEvent(new KeyboardEvent('keydown', enterOpts));
+
               state.sendBox.dispatchEvent(new KeyboardEvent('keypress', enterOpts));
+
               state.sendBox.dispatchEvent(new KeyboardEvent('keyup', enterOpts));
+
           }, 100);
 
-          // 送出魔法 2：暴力尋找送出按鈕並用底層滑鼠事件點擊
+
+
+          // 模擬方式 2：尋找並點擊發送按鈕
+
           setTimeout(() => {
+
               let parent = state.sendBox.parentElement;
+
               let sendBtn = null;
+
               while(parent && parent.tagName !== 'BODY') {
+
                   let customBtn = parent.querySelector('div[data-tooltip-id="input-send-button-cancel-tooltip"]');
+
                   if(customBtn) { 
-                      // 檢查內部有沒有紅點 (Cancel 狀態)，沒有才是 Send
+
+                      // 排除掉紅色的取消按鈕，只找綠色的 Send
+
                       if (!customBtn.querySelector('.bg-red-500') && !customBtn.innerHTML.includes('bg-red-500')) {
+
                           sendBtn = customBtn; 
+
                       }
+
                       break; 
+
                   }
+
                   
-                  let buttons = parent.querySelectorAll('button[aria-label*="Send"], button[aria-label*="送出"], .send-button');
+
+                  let buttons = parent.querySelectorAll('button[aria-label*="Send"], button[aria-label*="發送"], .send-button');
+
                   if(buttons.length > 0) { sendBtn = buttons[0]; break; }
+
                   
+
                   buttons = parent.querySelectorAll('button');
+
                   for(let i=0; i<buttons.length; i++) {
+
                       let b = buttons[i];
+
                       if (!b.innerHTML.includes('lucide-plus') && !b.innerHTML.includes('chevron-up') && !b.innerHTML.includes('mic') && !b.innerHTML.includes('lucide-image') && b.querySelector('svg')) {
+
                           sendBtn = b;
+
                       }
+
                   }
+
                   if (sendBtn) break;
+
                   parent = parent.parentElement;
+
               }
+
               if(sendBtn) {
+
                  ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach(evt => {
+
                      sendBtn.dispatchEvent(new MouseEvent(evt, { bubbles: true, cancelable: true, buttons: 1 }));
+
                  });
+
               }
+
           }, 300);
+
       }
+
       return true;
+
   };
+
+
 
   let tgIsPolling = false;
+
   let tgInit = false;
 
+
+
   const tgFetchPhotoBlob = async (fileId) => {
+
       try {
+
           const resMap = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getFile?file_id=${fileId}`);
+
           const dataMap = await resMap.json();
+
           if (dataMap.ok && dataMap.result.file_path) {
+
               const url = `https://api.telegram.org/file/bot${TG_TOKEN}/${dataMap.result.file_path}`;
+
               const resImg = await fetch(url);
+
               return await resImg.blob();
+
           }
+
       } catch(e) {
+
           console.error("TG Download Photo Error:", e);
+
       }
+
       return null;
+
   };
 
+
+
   const pollTg = async () => {
+
     if (!tgRunning || tgIsPolling) return;
+
     tgIsPolling = true;
+
     try {
+
       let url = 'https://api.telegram.org/bot' + TG_TOKEN + '/getUpdates?timeout=2';
+
       if (lastTgUpdateId !== 0) {
+
         url += '&offset=' + (lastTgUpdateId + 1);
-      }
-      
-      const res = await fetch(url);
-      const data = await res.json();
-      
-      let newMsgs = [];
-      let newPhotoMsg = null;
-      if(data.ok && data.result.length > 0) {
-         for(const item of data.result) {
-            lastTgUpdateId = Math.max(lastTgUpdateId, item.update_id);
-            if(item.message && String(item.message.chat.id) === TG_CHAT_ID) {
-                if (item.message.photo && item.message.photo.length > 0) {
-                   newPhotoMsg = {
-                       fileId: item.message.photo[item.message.photo.length - 1].file_id,
-                       caption: item.message.caption || ""
-                   };
-                } else if (item.message.text) {
-                   newMsgs.push(item.message.text);
-                }
-            }
-         }
+
       }
 
-      if (!tgInit) {
-         tgInit = true;
-         return;
-      }
       
+
+      const res = await fetch(url);
+
+      const data = await res.json();
+
+      
+
+      let newMsgs = [];
+
+      let newPhotoMsg = null;
+
+      if(data.ok && data.result.length > 0) {
+
+         for(const item of data.result) {
+
+            lastTgUpdateId = Math.max(lastTgUpdateId, item.update_id);
+
+            if(item.message && String(item.message.chat.id) === TG_CHAT_ID) {
+
+                if (item.message.photo && item.message.photo.length > 0) {
+
+                   newPhotoMsg = {
+
+                       fileId: item.message.photo[item.message.photo.length - 1].file_id,
+
+                       caption: item.message.caption || ""
+
+                   };
+
+                } else if (item.message.text) {
+
+                   newMsgs.push(item.message.text);
+
+                }
+
+            }
+
+         }
+
+      }
+
+
+
+      if (!tgInit) {
+
+         tgInit = true;
+
+         return;
+
+      }
+
+      
+
       const state = getChatState();
+
+
 
       let didProcessSomething = false;
 
-      // 先處理圖片（如果有的話）
+
+
+      // 優先處理圖片訊息
+
       if (newPhotoMsg && state.sendBox) {
-          tgSend("⏳ 收到圖片，正在向伺服器請求下載網址...");
+
+          tgSend("💬 收到圖片！正在為您下載並準備傳送給 AI...");
+
           didProcessSomething = true;
+
           try {
+
               const resMap = await fetch(`https://api.telegram.org/bot${TG_TOKEN}/getFile?file_id=${newPhotoMsg.fileId}`);
+
               const dataMap = await resMap.json();
+
               if (dataMap.ok && dataMap.result.file_path) {
+
                   const photoUrl = `https://api.telegram.org/file/bot${TG_TOKEN}/${dataMap.result.file_path}`;
+
                   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-                  const savePath = `<YOUR_PREVIEW_DIR_PATH>\\TG_Photo_${BOT_NAME}_${timestamp}.jpg`;
+
+                  const savePath = `D:/OneDrive/Python_File/插件_Antigravity/__Remote_Previews\\TG_Photo_${BOT_NAME}_${timestamp}.jpg`;
+
                   
-                  // 組合下載指令
+
+                  // 遠端下載
+
                   const cmdStr = `Invoke-WebRequest -Uri "${photoUrl}" -OutFile "${savePath}"`;
-                  const msgText = newPhotoMsg.caption ? newPhotoMsg.caption : "請幫我分析這張圖片";
+
+                  const msgText = newPhotoMsg.caption ? newPhotoMsg.caption : "請對這張圖片進行分析";
+
                   
-                  const remoteWrappedMessage = `請使用 <YOUR_SKILLS_PATH>\\00_remote-mode\\SKILL.md 技能處理以下請求：\n\n[視窗代號: ${BOT_NAME}] 使用者從 Telegram 傳送了一張圖片。\n請你自己在後台把它下載下來看：\n\n\`\`\`powershell\n${cmdStr}\n\`\`\`\n\n下載到 \`${savePath}\` 之後，請使用你的視覺能力查看圖片，並回答使用者以下問題：\n\n${msgText}`;
+
+                  const remoteWrappedMessage = `請參考 D:/OneDrive/Python_File/.agent_global_skills\\00_remote-mode\\SKILL.md 的說明\n\n[遠端指令: ${BOT_NAME}] 透過 Telegram 收到一張圖片，已自動下載到\n\`\`\`powershell\n${cmdStr}\n\`\`\`\n\n圖片儲存於 \`${savePath}\` 請應用你的遠端能力分析圖片，並回覆我。\n\n${msgText}`;
+
                   
+
                   injectTextAndSend(remoteWrappedMessage, state, true);
-                  tgSend("✅ 已攔截圖片並將任務指派給 AI 進行終端下載分析！");
+
+                  tgSend("💬 已將圖片下載指令傳送給 AI，請等待 AI 回覆。");
+
               }
+
           } catch(e) {
-              tgSend("⚠️ 圖片轉送失敗：" + e.toString());
+
+              tgSend("❌ 下載圖片失敗：" + e.toString());
+
           }
+
       }
+
       
-      // 處理純文字
+
+      // 處理文字訊息
+
       if (newMsgs.length > 0 && state.sendBox) {
-         let inputToSimulate = newMsgs[newMsgs.length - 1].trim(); // 只取最新那一筆
+
+         let inputToSimulate = newMsgs[newMsgs.length - 1].trim(); // 只取最後一則
+
          
+
          if (inputToSimulate.toLowerCase() === '/stop' || inputToSimulate === '停止') {
+
              const stopBtn = mainDoc.querySelector('div[data-tooltip-id="input-send-button-cancel-tooltip"]');
+
              if (stopBtn) {
+
                  ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach(evt => {
+
                      stopBtn.dispatchEvent(new MouseEvent(evt, { bubbles: true, cancelable: true, buttons: 1 }));
+
                  });
-                 tgSend("🛑 已為您在遠端按下「停止產生」按鈕！");
+
+                 tgSend("💬 已嘗試停止 AI 的生成，請稍候確認。");
+
              } else {
-                 tgSend("⚠️ 找不到停止按鈕，AI 可能已經處於閒置狀態。");
+
+                 tgSend("❌ 未找到停止 AI 生成的按鈕。");
+
              }
+
          } else if (inputToSimulate.toLowerCase().startsWith('/model')) {
+
              const targetArg = inputToSimulate.substring(6).trim().toUpperCase();
+
              const MODEL_MAP = {
+
                  'GPH': 'Gemini 3.1 Pro (High)',
+
                  'GPL': 'Gemini 3.1 Pro (Low)',
+
                  'GF':  'Gemini 3 Flash',
+
                  'CS':  'Claude Sonnet 4.6 (Thinking)',
+
                  'CO':  'Claude Opus 4.6 (Thinking)',
+
                  'GPT': 'GPT-OSS 120B (Medium)'
+
              };
+
              if (targetArg === "") {
-                 let reply = "🤖 **模型切換選單：**\n\n";
+
+                 let reply = "🤖 **可用模型列表：**\n\n";
+
                  Object.entries(MODEL_MAP).forEach(([code, name]) => {
-                     reply += `/model ${code} 👉 ${name}\n`;
+
+                     reply += `/model ${code} => ${name}\n`;
+
                  });
+
                  tgSend(reply);
+
              } else if (MODEL_MAP[targetArg]) {
+
                  const fullName = MODEL_MAP[targetArg];
+
                  const modelBtn = mainDoc.querySelector('div[role="button"][aria-haspopup="dialog"]');
+
                  if (modelBtn) {
+
                      modelBtn.click();
+
                      setTimeout(() => {
-                         // 排除 modelBtn 本身的文字，找 dialog 內的選項
+
+                         // 在 modelBtn 點擊後出現的 dialog 中尋找
+
                          const allEls = Array.from(mainBody.querySelectorAll('span, div, p, button, a, label'));
+
                          const candidates = allEls.filter(el => {
-                             if (modelBtn.contains(el)) return false; // 排除按鈕本身
+
+                             if (modelBtn.contains(el)) return false; // 排除掉 modelBtn 本身
+
                              const t = (el.innerText || el.textContent || '').trim();
+
                              return t.includes(fullName);
+
                          });
-                         // 找字數最少的最可能是目標選項
+
+                         // 選擇最短的那個，通常是精確匹配
+
                          candidates.sort((a, b) => a.textContent.trim().length - b.textContent.trim().length);
+
                          if (candidates.length > 0) {
+
                              const hit = candidates[0];
+
                              hit.click();
+
                              if (hit.parentElement) hit.parentElement.click();
-                             tgSend("✅ 模型已切換至: " + fullName);
+
+                             tgSend("🤖 模型已切換: " + fullName);
+
                          } else {
-                             tgSend(`⚠️ 畫面上找不到名為 ${fullName} 的模型選項，可能被折疊或沒有權限，請手動確認。`);
+
+                             tgSend(`❌ 未能找到匹配 ${fullName} 的模型選項，請手動切換或確認輸入。`);
+
                              mainBody.click();
+
                          }
+
                      }, 500);
+
                  } else {
-                     tgSend("⚠️ 找不到模型選單按鈕。");
+
+                     tgSend("❌ 未找到模型切換按鈕。");
+
                  }
+
              } else {
-                 tgSend("⚠️ 不認識的代碼「" + targetArg + "」。輸入 /model 查看可用代碼。");
+
+                 tgSend("❌ 無效的模型代碼 " + targetArg + "。請輸入 `/model` 查看可用模型。");
+
              } } else if (inputToSimulate.toLowerCase() === '/retry' || inputToSimulate === '重試') {
+
              let retryBtn = null;
+
              mainDoc.querySelectorAll('button, [role="button"], a').forEach(el => {
+
                  const text = (el.innerText || el.textContent || '').trim();
+
                  if (text === 'Retry' || text === '重試') retryBtn = el;
+
              });
+
              if (retryBtn) {
-                 tgSend("🔄 收到了指令，已為您強行點擊 Retry 重試任務！");
+
+                 tgSend("💬 偵測到 Retry 按鈕！已為您自動點擊重試。");
+
                  retryBtn.click();
+
              } else {
-                 tgSend("⚠️ 目前畫面上沒有看到可以 Retry 的按鈕喔。");
+
+                 tgSend("❌ 未找到可點擊的 Retry 按鈕。");
+
              }
+
          } else if (inputToSimulate.startsWith('/ask ') || inputToSimulate.startsWith('!')) {
+
              const cleanInput = inputToSimulate.startsWith('/ask ') ? inputToSimulate.substring(5) : inputToSimulate.substring(1);
+
              injectTextAndSend(cleanInput, state, true);
-             tgSend("🗣️ 已幫您純粹作為文字輸入送出: " + cleanInput);
+
+             tgSend("💬 已將訊息傳送給 AI，請等待回覆: " + cleanInput);
+
          } else {
-             const remoteWrappedMessage = `請使用 <YOUR_SKILLS_PATH>\\00_remote-mode\\SKILL.md 技能處理以下請求：\n\n${inputToSimulate}`;
+
+             const remoteWrappedMessage = `請參考 D:/OneDrive/Python_File/.agent_global_skills\\00_remote-mode\\SKILL.md 的說明\n\n${inputToSimulate}`;
+
              injectTextAndSend(remoteWrappedMessage, state, true);
-             tgSend("📩 已疊加遠端環境變數並為您發送: " + inputToSimulate);
+
+             tgSend("💬 已將訊息傳送給 AI，請等待回覆: " + inputToSimulate);
+
          }
+
          didProcessSomething = true;
+
       } 
+
       
+
       if ((newPhotoMsg || newMsgs.length > 0) && !didProcessSomething) {
-         tgSend("⚠️ 找不到編輯器的輸入框，請確認您的視窗已打開 AI 聊天室！");
+
+         tgSend("❌ 未能處理您的訊息，請確認輸入格式或 AI 狀態。");
+
       }
+
+
 
     } catch(e) {
+
        console.log("TG Poll Error", e);
+
     } finally {
+
       tgIsPolling = false;
+
     }
+
   };
+
+
 
   let chatObserver = null;
+
   let lastStreamTime = Date.now();
+
   
+
   const setupChatObserver = () => {
+
       if (chatObserver) {
+
           chatObserver.disconnect();
+
       }
+
       
+
       chatObserver = new MutationObserver(() => {
+
           if (!tgRunning) return;
+
           
+
           let currentlyThinking = false;
+
           const stopBtn = mainDoc.querySelector('div[data-tooltip-id="input-send-button-cancel-tooltip"]');
+
           if (stopBtn && (stopBtn.querySelector('.bg-red-500') || stopBtn.innerHTML.includes('bg-red-500'))) {
+
               currentlyThinking = true;
+
           }
+
           
+
           if (currentlyThinking) {
+
               const now = Date.now();
+
               if (!window.top.__thinkingStartTime) {
+
                   window.top.__thinkingStartTime = now;
+
               }
+
               if (now - lastStreamTime > 180000) {
+
                   lastStreamTime = now;
+
                   const elapsedMs = now - window.top.__thinkingStartTime;
+
                   const elapsedMins = Math.floor(elapsedMs / 60000);
+
                   const elapsedSecs = Math.floor((elapsedMs % 60000) / 1000);
+
                   const timeStr = elapsedMins > 0 ? `${elapsedMins} 分 ${elapsedSecs} 秒` : `${elapsedSecs} 秒`;
+
                   tgSend(`✍️ AI 努力編輯中... (正在為您產生內容，請稍候。目前任務已執行：${timeStr})`);
+
               }
+
           } else {
+
              window.top.__thinkingStartTime = null;
+
           }
+
           
+
           let retryBtn = null;
+
           let upgradeBtn = null;
+
           mainDoc.querySelectorAll('button, [role="button"], a').forEach(el => {
+
               const bText = (el.innerText || el.textContent || '').trim().toLowerCase();
+
               if (bText === 'retry' || bText === '重試') retryBtn = el;
+
               if (bText === 'upgrade' || bText === '更新模型' || bText === 'upgrade extension') upgradeBtn = el;
+
           });
+
           
+
           if (retryBtn && !currentlyThinking && !tgIsPolling) {
+
               const now = Date.now();
+
               if (!window.top.__lastRetryTime) window.top.__lastRetryTime = 0;
+
               if (now - window.top.__lastRetryTime > 60000) {
+
                   window.top.__lastRetryTime = now;
+
                   tgSend("🔄 偵測到 Retry 按鈕！已為您自動點擊重試。");
+
                   retryBtn.click();
+
               } else {
+
                   if (!window.top.__hasNotifiedRetrySpan || (now - window.top.__hasNotifiedRetrySpan > 15000)) {
+
                       window.top.__hasNotifiedRetrySpan = now;
+
                       tgSend("⚠️ 一分鐘內頻繁出現 Retry 錯誤，請確認狀況。若要強行重試請輸入 `/retry`");
+
                   }
+
               }
+
           }
+
           
+
           if (upgradeBtn && !currentlyThinking) {
+
               const now = Date.now();
+
               if (!window.top.__hasNotifiedUpgrade || (now - window.top.__hasNotifiedUpgrade > 60000)) {
+
                   window.top.__hasNotifiedUpgrade = now;
+
                   tgSend("⚠️ 系統跳出 Upgrade / 更新模型 提示。請輸入 `/model` 來切換模型或手動處理。");
+
               }
+
           }
+
           
+
           if (wasBotThinking && !currentlyThinking) {
+
              console.log("[TG Monitor] Task finished. Extracting response payloads...");
+
              
-             // 嘗試解析遠端廣播封包 
+
+             // 嘗試從頁面抓取傳送內容 
+
              let broadcastContent = "";
+
              let imageBox = "";
+
              try {
+
                  let fullText = mainBody.innerText || mainBody.textContent || "";
-                 // 清除 VSCode 摺疊或奇怪的換行干擾
+
+                 // 移除 VSCode 隱藏字元以免解碼失敗
+
                  fullText = fullText.replace(/\u200B/g, '');
 
-                 // 擷取最新的一筆文字總結 (找最後一個匹配)
+
+
+                 // 找尋最後一段文字廣播內容 (由雙標籤包覆)
+
                  const regexText = /\[TG_BROADCAST_START\]([\s\S]*?)\[TG_BROADCAST_END\]/g;
+
                  let matchText;
+
                  while ((matchText = regexText.exec(fullText)) !== null) {
+
                      broadcastContent = matchText[1].trim();
+
                  }
+
                  
-                 // 擷取最新的一筆圖片 Base64
+
+                 // 找尋最後一段圖片 Base64
+
                  const regexImg = /\[TG_BASE64_IMAGE\]([\s\S]*?)\[TG_BASE64_IMAGE_END\]/g;
+
                  let matchImg;
+
                  while ((matchImg = regexImg.exec(fullText)) !== null) {
+
                      imageBox = matchImg[1].trim();
+
                  }
+
                  
+
              } catch(e) {
+
                  console.log("[TG Monitor] Error extracting broadcast:", e);
+
              }
+
+
 
              if (imageBox) {
-                 tgSendPhoto(imageBox, `✅ 任務執行完畢！\n\n💬 AI 報告：\n${broadcastContent}`);
+
+                 tgSendPhoto(imageBox, `✅ 任務執行完畢！\n\n📄 AI 回覆範例：\n${broadcastContent}`);
+
              } else if (broadcastContent) {
-                 tgSend(`✅ 任務執行完畢！\n\n💬 AI 報告：\n${broadcastContent}`);
+
+                 tgSend(`✅ 任務執行完畢！\n\n📄 AI 回覆範例：\n${broadcastContent}`);
+
              } else {
-                 tgSend("✅ 報告：Antigravity 任務已執行完畢！(AI 空閒中)\n*此任務未包含遠端摘要回報。*");
+
+                 tgSend("✅ 任務結束：Antigravity 任務已執行完畢！(AI 未提供特定回報文本)");
+
              }
+
           }
+
           wasBotThinking = currentlyThinking;
+
       });
+
       
+
       window.top.__tgObserver = chatObserver;
 
+
+
       chatObserver.observe(mainBody, {
+
           childList: true,
+
           subtree: true,
+
           attributes: true,
+
           attributeFilter: ['class', 'data-tooltip-id']
+
       });
+
   };
+
+
 
   const getWorkspaceName = () => {
+
     try {
+
       const explorerHeader = mainDoc.querySelector('h3.title[aria-label^="Explorer Section:"]');
+
       if (explorerHeader) {
+
         return explorerHeader.textContent.trim();
+
       }
+
       
+
       const titleEl = mainDoc.querySelector('title');
+
       if (titleEl) {
+
         const parts = titleEl.textContent.split(' - ');
+
         if (parts.length >= 2) return parts[parts.length - 2].trim();
+
       }
+
     } catch(e) {}
-    return "未知工作區";
+
+    return "?芰撌乩分";
+
   };
+
+
 
   tgBtn.onclick = (e) => {
+
     e.stopPropagation();
+
     if (!tgRunning) {
+
       if (window.top.__tgInterval) clearInterval(window.top.__tgInterval);
+
       
+
       tgInit = false; 
+
       window.top.__tgInterval = setInterval(pollTg, 4000);
+
       setupChatObserver();
+
       
-      tgText.textContent = '⏸ 暫停 TG 遙控';
+
+      tgText.textContent = '分?怠? TG ?';
+
       tgBtn.style.background = greenGradient;
+
       tgRunning = true;
+
       
+
       const wsName = getWorkspaceName();
-      tgSend(`🚀 Antigravity 遠端遙控已連線... 目前工作空間為：[ ${wsName} ] 隨時可以對我下達指令！`);
+
+      tgSend(`分 Antigravity ?垢?撌脤分... ?桀?撌乩?蝛粹分綽?[ ${wsName} ] ?冽分臭誑撠?銝分誘嚗);
+
     } else {
+
       clearInterval(window.top.__tgInterval);
+
       if (chatObserver) chatObserver.disconnect();
+
       
-      tgText.textContent = '📱 開啟 TG 遙控';
+
+      tgText.textContent = '? ?? TG ?';
+
       tgBtn.style.background = '#0088cc';
+
       tgRunning = false;
-      tgSend("💤 遙控已斷線。");
+
+      tgSend("? ?撌脫蝺?);
+
     }
+
   };
+
   tgSection.appendChild(tgBtn);
+
   menu.appendChild(tgSection);
 
+
+
   const skillsTitle = mainDoc.createElement('div');
-  skillsTitle.textContent = '⚡ Master Skills';
+
+  skillsTitle.textContent = '分Master Skills';
+
   skillsTitle.style.cssText = 'color: #aaa; font-size: 11px; margin-bottom: 6px; padding-left: 4px; border-top: none;';
+
   menu.appendChild(skillsTitle);
 
+
+
   masterSkills.forEach(skill => {
+
     const item = mainDoc.createElement('div');
+
     item.textContent = skill.replace('00_', '');
-    item.title = '點擊複製: ' + skill;
+
+    item.title = '暺?銴ˊ: ' + skill;
+
     item.style.cssText = `
+
       display: block;
+
       width: 100%;
+
       min-height: 32px;
+
       padding: 8px 12px;
+
       margin-bottom: 2px;
+
       color: #e2e8f0;
+
       font-family: system-ui, -apple-system, sans-serif;
+
       font-size: 13px;
+
       line-height: normal; 
+
       cursor: pointer;
+
       border-radius: 4px;
+
       white-space: nowrap;
+
       overflow: hidden;
+
       text-overflow: ellipsis;
+
       box-sizing: border-box;
+
       user-select: none;
+
     `;
+
     item.onmouseover = () => {
+
       item.style.background = 'rgba(255, 255, 255, 0.1)';
+
       item.style.color = '#fff';
+
     };
+
     item.onmouseout = () => {
+
       item.style.background = 'transparent';
+
       item.style.color = '#e2e8f0';
+
     };
+
     item.onclick = (e) => {
+
       e.stopPropagation();
+
       const state = getChatState();
-      const command = '請使用 <YOUR_SKILLS_PATH>\\' + skill;
+
+      const command = '隢蝙分D:/OneDrive/Python_File/.agent_global_skills\\' + skill;
+
       if (state.sendBox) {
-         injectTextAndSend(command, state, false); // false = 不要自動發送
+
+         injectTextAndSend(command, state, false); // false = 銝分芸分潮?
+
          const orig = item.textContent;
-         item.textContent = '✅ 已為您輸入對話框！';
+
+         item.textContent = '分撌脩?刻撓?亙?閰望?嚗?;
+
          item.style.color = '#4ade80';
+
          item.style.fontWeight = 'bold';
+
          setTimeout(() => {
+
            item.textContent = orig;
+
            item.style.color = '#e2e8f0';
+
            item.style.fontWeight = 'normal';
+
            menu.style.display = 'none';
+
            menuOpen = false;
+
          }, 700);
+
       } else {
+
          copyToClipboard(command);
+
          const orig = item.textContent;
-         item.textContent = '✅ 已複製!';
+
+         item.textContent = '分撌脰?鋆?';
+
          item.style.color = '#4ade80';
+
          item.style.fontWeight = 'bold';
+
          setTimeout(() => {
+
            item.textContent = orig;
+
            item.style.color = '#e2e8f0';
+
            item.style.fontWeight = 'normal';
+
            menu.style.display = 'none';
+
            menuOpen = false;
+
          }, 700);
+
       }
+
     };
+
     menu.appendChild(item);
+
   });
+
+
 
   btn.onclick = (e) => {
+
     e.stopPropagation();
+
     menuOpen = !menuOpen;
+
     menu.style.display = menuOpen ? 'block' : 'none';
+
   };
+
   
+
   btn.oncontextmenu = (e) => {
+
     e.preventDefault();
+
     if (window.top.__acInterval) clearInterval(window.top.__acInterval);
+
     btn.remove();
+
     menu.remove();
+
   };
+
+
 
   mainDoc.addEventListener('click', () => {
+
     if (menuOpen) {
+
       menu.style.display = 'none';
+
       menuOpen = false;
+
     }
+
   });
 
+
+
   mainBody.appendChild(btn);
+
   mainBody.appendChild(menu);
-  console.log('🚀 7. Unified Agent Tools 完全載入成功！');
+
+  console.log('分 7. Unified Agent Tools 摰頛??嚗?);
+
 })();
