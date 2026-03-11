@@ -71,7 +71,7 @@ def tg_download_file(file_id, save_path):
     urllib.request.urlretrieve(url, save_path)
     return True
 
-# ── IDE 注入（VS Code / Antigravity）───────────────────
+# ── VS Code / Antigravity IDE 注入 ───────────────────
 user32 = ctypes.windll.user32
 
 _PS_FOCUS = r"""
@@ -83,8 +83,7 @@ public class WinFocus {
 }
 '@ -ErrorAction SilentlyContinue
 
-# 修改此處為你的 IDE 程序名稱，如 "Code" (VS Code) 或 "Antigravity"
-$proc = Get-Process -Name 'Code' -ErrorAction SilentlyContinue |
+$proc = Get-Process -Name 'Antigravity' -ErrorAction SilentlyContinue |
         Where-Object { $_.MainWindowHandle -ne [IntPtr]::Zero } |
         Select-Object -First 1
 
@@ -98,7 +97,7 @@ if ($proc) {
 }
 """
 
-def focus_ide():
+def focus_vscode():
     import tempfile
     with tempfile.NamedTemporaryFile(mode='w', suffix='.ps1', delete=False, encoding='utf-8') as f:
         f.write(_PS_FOCUS)
@@ -116,7 +115,7 @@ def focus_ide():
     return out.startswith("OK:")
 
 def inject_to_claude(text, auto_send=True):
-    ok = focus_ide()
+    ok = focus_vscode()
     print(f"[Focus] hwnd found: {ok}")
 
     escaped = text.replace("'", "''")

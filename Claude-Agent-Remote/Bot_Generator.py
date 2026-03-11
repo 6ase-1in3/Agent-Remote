@@ -16,6 +16,7 @@ def parse_models(models_str):
         if ":" in item:
             key, name = item.split(":", 1)
             pairs.append((key.strip(), name.strip()))
+    # 輸出成 Python list of tuples literal
     items_str = ", ".join(f'("{k}", "{n}")' for k, n in pairs)
     return f"[{items_str}]"
 
@@ -29,6 +30,7 @@ def main():
     template_path = os.path.join(script_dir, "範本Claude Bot.py")
     config_path   = os.path.join(script_dir, "telegram_credentials.txt")
 
+    # 檢查必要檔案
     if not os.path.exists(template_path):
         print(f"找不到範本檔案：{template_path}")
         input("按 Enter 離開...")
@@ -36,10 +38,10 @@ def main():
 
     if not os.path.exists(config_path):
         print(f"找不到憑證檔案：{config_path}")
-        print("請先複製 telegram_credentials_example.txt 為 telegram_credentials.txt 並填入設定")
         input("按 Enter 離開...")
         return
 
+    # 讀取設定
     print(f"讀取配置：{config_path}")
     cfg = configparser.ConfigParser()
     cfg.optionxform = str
@@ -47,7 +49,6 @@ def main():
 
     if "GLOBAL" not in cfg:
         print("設定檔缺少 [GLOBAL] 區塊！")
-        input("按 Enter 離開...")
         return
 
     g = cfg["GLOBAL"]
@@ -60,6 +61,7 @@ def main():
     print(f"MODELS: {models_list}")
     print()
 
+    # 讀取範本
     with open(template_path, "r", encoding="utf-8") as f:
         template = f.read()
 
@@ -75,6 +77,7 @@ def main():
             print(f"跳過 {bot_name}：缺少 TOKEN")
             continue
 
+        # 替換佔位符（保留 Windows 路徑原樣，因為 Python raw string 會正確處理）
         text = template
         text = text.replace("<BOT_NAME>",    bot_name)
         text = text.replace("<TG_TOKEN>",    bot_token)
