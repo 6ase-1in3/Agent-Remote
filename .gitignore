@@ -1,7 +1,12 @@
 telegram_credentials.txt
 */telegram_credentials.txt
-Claude_Bot_1.py
-*/Claude_Bot_1.py
+
+# 產生器輸出的 Bot 腳本（含個人路徑，不上傳）
+Claude_Bot_*.py
+*/Claude_Bot_*.py
+啟動_Claude_Bot_*.bat
+*/啟動_Claude_Bot_*.bat
+
 __Remote_Previews/
 */__Remote_Previews/
 
