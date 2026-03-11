@@ -1,4 +1,14 @@
 telegram_credentials.txt
+*/telegram_credentials.txt
+Claude_Bot_1.py
+*/Claude_Bot_1.py
+__Remote_Previews/
+*/__Remote_Previews/
+
 __pycache__/
+*.py[cod]
+*$py.class
 *.env
 .DS_Store
+*.log
+*.tmp
